@@ -1,5 +1,6 @@
 ﻿using Mediscribe_AI.Models.ResponseVM;
 using Mediscribe_AI.Serives.Interfaces;
+using System.Numerics;
 using System.Text;
 using System.Text.Json;
 
@@ -22,7 +23,12 @@ namespace Mediscribe_AI.Serives
                 You are a clinical assistant helping to create SOAP notes.
                 --Please generate polite and patient-friendly responses while keeping a professional medical tone. 
                 --The goal is to make the output easy for patients and clinicians to read, not blunt or overly technical. 
-                --Always output valid JSON strictly following this schema:
+                --Keep the response polite, easy to read, and concise so that it fits in a chatbot UI.
+                --Limit each section to short, clear sentences.
+                --In addition to JSON, also generate an HTML version of the same content under the key 'htmlFormat', formatted with proper headings (SOAP, Subjective, Objective, Assessment, Plan) and subheadings for the plan (Investigations, Medications, Lifestyle Advice, Referrals, Monitoring). 
+                --Ensure the HTML is clean and suitable for direct rendering in a chatbot UI.
+
+                Always output valid JSON strictly following this schema:
                 
                 Patient Narrative:
                 {patientNarrative}
@@ -39,6 +45,7 @@ namespace Mediscribe_AI.Serives
                     ""Referrals"": [""string""],
                     ""Monitoring"": [""string""]
                   }}
+                ""htmlFormat"": ""<div>...</div>""
                 }}"
             ;
 
@@ -91,7 +98,23 @@ namespace Mediscribe_AI.Serives
                 PropertyNameCaseInsensitive = true
             });
 
-            return soapNote ?? new SoapNotesResponse();
+            var conciseResponse = new SoapNotesResponse
+            {
+                Subjective = soapNote.Subjective,
+                Objective = soapNote.Objective,
+                Assessment = soapNote.Assessment,
+                HtmlFormat = soapNote.HtmlFormat,
+                Plan = new PlanDetail
+                {
+                    Investigations = soapNote.Plan.Investigations.Take(2).ToList(),
+                    Medications = soapNote.Plan.Medications.Take(2).ToList(),
+                    LifestyleAdvice = soapNote.Plan.LifestyleAdvice.Take(2).ToList(),
+                    Referrals = soapNote.Plan.Referrals.Take(1).ToList(),
+                    Monitoring = soapNote.Plan.Monitoring.Take(2).ToList()
+                }
+            };
+
+            return conciseResponse ?? new SoapNotesResponse();
         }
     }
 }
