@@ -14,6 +14,18 @@ namespace Mediscribe_AI
 
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<ISoapNotesService, SoapNotesService>();
+            
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend",
+                    policy =>
+                    {
+                        policy.WithOrigins("http://localhost:4200") // ?? Angular/React/Vue frontend
+                              .AllowAnyHeader()
+                              .AllowAnyMethod()
+                              .AllowCredentials(); // optional if cookies/credentials are used
+                    });
+            });
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -21,6 +33,8 @@ namespace Mediscribe_AI
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
+
+            app.UseCors("AllowFrontend");
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

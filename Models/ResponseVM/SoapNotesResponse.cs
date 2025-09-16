@@ -6,6 +6,8 @@
         public string Objective { get; set; }
         public string Assessment { get; set; }
         public PlanDetail Plan { get; set; }
+
+        public string HtmlFormat { get; set; }
     }
     public class PlanDetail
     {
