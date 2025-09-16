@@ -106,11 +106,11 @@ namespace Mediscribe_AI.Serives
                 HtmlFormat = soapNote.HtmlFormat,
                 Plan = new PlanDetail
                 {
-                    Investigations = soapNote.Plan.Investigations.Take(2).ToList(),
-                    Medications = soapNote.Plan.Medications.Take(2).ToList(),
-                    LifestyleAdvice = soapNote.Plan.LifestyleAdvice.Take(2).ToList(),
+                    Investigations = soapNote.Plan.Investigations.Take(3).ToList(),
+                    Medications = soapNote.Plan.Medications.Take(3).ToList(),
+                    LifestyleAdvice = soapNote.Plan.LifestyleAdvice.Take(3).ToList(),
                     Referrals = soapNote.Plan.Referrals.Take(1).ToList(),
-                    Monitoring = soapNote.Plan.Monitoring.Take(2).ToList()
+                    Monitoring = soapNote.Plan.Monitoring.Take(3).ToList()
                 }
             };
 
