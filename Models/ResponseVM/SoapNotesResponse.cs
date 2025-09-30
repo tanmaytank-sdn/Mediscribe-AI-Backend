@@ -8,6 +8,7 @@
         public PlanDetail Plan { get; set; }
 
         public string HtmlFormat { get; set; }
+        public string RawResponse { get; set; }
     }
     public class PlanDetail
     {

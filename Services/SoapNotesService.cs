@@ -1,6 +1,5 @@
 ﻿using Mediscribe_AI.Models.ResponseVM;
 using Mediscribe_AI.Serives.Interfaces;
-using System.Numerics;
 using System.Text;
 using System.Text.Json;
 
@@ -20,14 +19,19 @@ namespace Mediscribe_AI.Serives
         public async Task<SoapNotesResponse> GenerateSoapNotesAsync(string patientNarrative)
         {
             var prompt = $@"
-                You are a clinical assistant helping to create SOAP notes.
-                --Please generate polite and patient-friendly responses while keeping a professional medical tone. 
-                --The goal is to make the output easy for patients and clinicians to read, not blunt or overly technical. 
-                --Keep the response polite, easy to read, and concise so that it fits in a chatbot UI.
-                --Limit each section to short, clear sentences.
-                --In addition to JSON, also generate an HTML version of the same content under the key 'htmlFormat', formatted with proper headings (SOAP, Subjective, Objective, Assessment, Plan) and subheadings for the plan (Investigations, Medications, Lifestyle Advice, Referrals, Monitoring). 
-                --Ensure the HTML is clean and suitable for direct rendering in a chatbot UI.
-
+                You are a clinical assistant focused exclusively on creating SOAP notes.
+                -- Only provide content related to healthcare SOAP note creation. Do not include any unrelated or non-medical information.
+                -- If the user query is not related to healthcare SOAP notes (e.g., about GPT, finance, technology, or other topics), politely respond: 
+                   'I’m sorry, but I can only provide answers related to healthcare. Please let me know if your query is healthcare-related, and I’ll be happy to assist you.'
+                -- Always generate responses in the structure of SOAP notes: Subjective, Objective, Assessment, and Plan.
+                -- Ensure responses are polite, patient-friendly, and written in a professional medical tone.
+                -- Keep each section concise, clear, and easy to read so that it fits well in a chatbot UI.
+                -- Limit sentences to short, simple statements suitable for patients and clinicians.
+                -- In addition to JSON, also generate an HTML version of the same content under the key htmlFormat.
+                -- The HTML must include proper headings (SOAP, Subjective, Objective, Assessment, Plan) and subheadings under Plan (Investigations, Medications, Lifestyle     Advice,             Referrals, Monitoring).
+                -- Ensure the HTML is clean, minimal, and directly renderable in a chatbot UI.
+                -- If the input is not about the helth care domain please bind the data into only **RawResponse** and **HtmlFormat fields** of Output JSON Structure.
+                
                 Always output valid JSON strictly following this schema:
                 
                 Patient Narrative:
@@ -35,6 +39,7 @@ namespace Mediscribe_AI.Serives
                 
                 Output JSON structure:
                 {{
+                  ""RawResponse"": ""..."",
                   ""Subjective"": ""..."",
                   ""Objective"": ""..."",
                   ""Assessment"": ""..."",
@@ -44,10 +49,11 @@ namespace Mediscribe_AI.Serives
                     ""LifestyleAdvice"": [""string""],
                     ""Referrals"": [""string""],
                     ""Monitoring"": [""string""]
-                  }}
-                ""htmlFormat"": ""<div>...</div>""
-                }}"
-            ;
+                  }},
+                  ""htmlFormat"": ""<div>...</div>""
+                }}
+                ";
+
 
             var requestBody = new
             {
@@ -84,7 +90,6 @@ namespace Mediscribe_AI.Serives
                 .GetProperty("parts")[0]
                 .GetProperty("text").GetString();
 
-            // Remove markdown code fences (```json ... ```)
             if (!string.IsNullOrEmpty(text))
             {
                 text = text.Replace("```json", "")
@@ -92,14 +97,34 @@ namespace Mediscribe_AI.Serives
                            .Trim();
             }
 
-            // Deserialize into strongly-typed class
-            var soapNote = JsonSerializer.Deserialize<SoapNotesResponse>(text, new JsonSerializerOptions
+            SoapNotesResponse soapNote = null;
+
+            bool looksLikeJson = text.StartsWith("{") || text.StartsWith("[");
+
+            if (looksLikeJson)
             {
-                PropertyNameCaseInsensitive = true
-            });
+                try
+                {
+                    soapNote = JsonSerializer.Deserialize<SoapNotesResponse>(text, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                }
+                catch
+                {
+                    // fallback if parsing fails
+                    soapNote = BuildFallback(text);
+                }
+            }
+            else
+            {
+                // Direct fallback if not JSON
+                soapNote = BuildFallback(text);
+            }
 
             var conciseResponse = new SoapNotesResponse
             {
+                RawResponse = soapNote.RawResponse,
                 Subjective = soapNote.Subjective,
                 Objective = soapNote.Objective,
                 Assessment = soapNote.Assessment,
@@ -115,6 +140,27 @@ namespace Mediscribe_AI.Serives
             };
 
             return conciseResponse ?? new SoapNotesResponse();
+        }
+
+        // Helper method for fallback
+        private SoapNotesResponse BuildFallback(string text)
+        {
+            return new SoapNotesResponse
+            {
+                RawResponse = text,
+                Subjective = string.Empty,
+                Objective = string.Empty,
+                Assessment = string.Empty,
+                Plan = new PlanDetail
+                {
+                    Investigations = new List<string>(),
+                    Medications = new List<string>(),
+                    LifestyleAdvice = new List<string>(),
+                    Referrals = new List<string>(),
+                    Monitoring = new List<string>()
+                },
+                HtmlFormat = $"<div><p>{System.Net.WebUtility.HtmlEncode(text)}</p></div>"
+            };
         }
     }
 }
