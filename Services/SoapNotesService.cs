@@ -27,7 +27,7 @@ namespace Mediscribe_AI.Serives
                 --Limit each section to short, clear sentences.
                 --In addition to JSON, also generate an HTML version of the same content under the key 'htmlFormat', formatted with proper headings (SOAP, Subjective, Objective, Assessment, Plan) and subheadings for the plan (Investigations, Medications, Lifestyle Advice, Referrals, Monitoring). 
                 --Ensure the HTML is clean and suitable for direct rendering in a chatbot UI.
-
+                --Only provide healthcare-related details. Do not include any unrelated or non-medical information In case of other please response I Don't have Valid Information about this content.
                 Always output valid JSON strictly following this schema:
                 
                 Patient Narrative:
